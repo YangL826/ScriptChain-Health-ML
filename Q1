@@ -1,7 +1,11 @@
-# Suppose that we design a deep architecture to represent a sequence by stacking self-attention layers with positional encoding. What could be issues? (paragraph format)
+# Suppose that we design a deep architecture to represent a sequence by stacking self-attention layers with positional encoding. 
+What could be issues? (paragraph format)
 
-It has several potential issues: (1) Surge in model parameters makes difficult in difficulty in tuning parameters. (2) Computational cost including training time and the memory usage will increase.
-(3) Limited training data may result in overfitting due to dedicated architecture. One solution is to add a dropout layer. (4) Interpretability (model interpretation and visualization) becomes difficult 
+It has several potential issues: 
+(1) Surge in model parameters makes difficult in difficulty in tuning parameters. 
+(2) Computational cost including training time and the memory usage will increase.
+(3) Limited training data may result in overfitting due to dedicated architecture. One solution is to add a dropout layer. 
+(4) Interpretability (model interpretation and visualization) becomes difficult 
 (5) Long-range dependencies is not strong. Self-attention mechanisms emphasize nearby positions.
 
 
