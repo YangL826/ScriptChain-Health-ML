@@ -6,47 +6,59 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, Dataset
 
 class DummyDataset(Dataset):
-    def __init__(self, num_sequences, sequence_length, embedding_dim):
-        self.data = torch.randn(num_sequences, sequence_length, embedding_dim)
+    def __init__(self, num_samples, sequence_length, num_features):
+        self.data = torch.randn(num_samples, sequence_length, num_features)
+        self.targets = torch.randint(0, 2, (num_samples,))
         
     def __len__(self):
         return len(self.data)
     
     def __getitem__(self, idx):
-        return self.data[idx]
-
-num_sequences = 1000
-sequence_length = 10
-embedding_dim = 64
-dummy_data = DummyDataset(num_sequences, sequence_length, embedding_dim)
-dataloader = DataLoader(dummy_data, batch_size=32, shuffle=True)
-
-
-class LearnablePositionalEncoding(nn.Module):
-    def __init__(self, max_seq_length, embedding_dim):
-        super(LearnablePositionalEncoding, self).__init__()
-        self.positional_encoding = nn.Parameter(torch.zeros(max_seq_length, embedding_dim))
+        return self.data[idx], self.targets[idx]
     
+num_samples = 1000
+sequence_length = 10
+num_features = 8
+batch_size = 32
+dataset = DummyDataset(num_samples, sequence_length, num_features)
+dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+
+class PositionalEncodingModel(nn.Module):
+    def __init__(self, sequence_length, num_features, num_classes, hidden_size, num_layers):
+        super(PositionalEncodingModel, self).__init__()
+        self.embedding = nn.Linear(num_features, hidden_size)
+        self.positional_encoding = nn.Parameter(torch.randn(sequence_length, hidden_size))
+        self.rnn = nn.LSTM(hidden_size, hidden_size, num_layers, batch_first=True)
+        self.fc = nn.Linear(hidden_size, num_classes)
+        
     def forward(self, x):
-        batch_size, seq_length, _ = x.size()
-        return x + self.positional_encoding[:seq_length]
+        x = self.embedding(x)
+        x = x + self.positional_encoding.unsqueeze(0)
+        x, _ = self.rnn(x)
+        x = x[:, -1, :]
+        x = self.fc(x)
+        return x
 
+num_classes = 2
+hidden_size = 16
+num_layers = 2
 
-max_seq_length = 20
 learning_rate = 0.001
-model = LearnablePositionalEncoding(max_seq_length, embedding_dim)
+
+model = PositionalEncodingModel(sequence_length, num_features, num_classes, hidden_size, num_layers)
+criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
-num_epochs = 50
+
+num_epochs = 100
 for epoch in range(num_epochs):
-    for batch in dataloader:
+    total_loss = 0.0
+    for batch_data, batch_targets in dataloader:
         optimizer.zero_grad()
-        output = model(batch)
-        
-        # Your loss calculation and backpropagation here
-        # For demonstration purposes, let's say the loss is the mean squared error
-        loss = nn.MSELoss()(output, batch)
+        outputs = model(batch_data)
+        loss = criterion(outputs, batch_targets)
         loss.backward()
         optimizer.step()
+        total_loss += loss.item()
     
-    print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}")
+    print(f"Epoch {epoch+1}/{num_epochs}, Loss: {total_loss:.3f}")
